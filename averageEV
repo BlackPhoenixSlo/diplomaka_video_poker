@@ -1,0 +1,99 @@
+import random
+from collections import Counter
+from itertools import combinations
+
+# Define the deck and the payouts for each hand
+deck = [f"{rank}{suit}" for rank in '23456789TJQKA' for suit in 'SHDC']
+payouts = {
+    'royal_flush': 800,
+    'straight_flush': 50,
+    'four_of_a_kind': 25,
+    'full_house': 9,
+    'flush': 6,
+    'straight': 4,
+    'three_of_a_kind': 3,
+    'two_pair': 2,
+    'jacks_or_better': 1,
+    'nothing': 0
+}
+
+# Helper functions to evaluate each hand
+def evaluate_hand(hand):
+    values = sorted(['--23456789TJQKA'.index(card[0]) for card in hand])
+    suits = [card[1] for card in hand]
+    
+    if is_royal_flush(values, suits):
+        return 'royal_flush'
+    elif is_straight_flush(values, suits):
+        return 'straight_flush'
+    elif is_four_of_a_kind(values):
+        return 'four_of_a_kind'
+    elif is_full_house(values):
+        return 'full_house'
+    elif is_flush(suits):
+        return 'flush'
+    elif is_straight(values):
+        return 'straight'
+    elif is_three_of_a_kind(values):
+        return 'three_of_a_kind'
+    elif is_two_pair(values):
+        return 'two_pair'
+    elif is_jacks_or_better(values):
+        return 'jacks_or_better'
+    else:
+        return 'nothing'
+
+def is_royal_flush(values, suits):
+    return len(set(suits)) == 1 and set(values) == {10, 11, 12, 13, 14}
+
+def is_straight_flush(values, suits):
+    return is_flush(suits) and is_straight(values)
+
+def is_four_of_a_kind(values):
+    return 4 in Counter(values).values()
+
+def is_full_house(values):
+    counter = Counter(values)
+    return set(counter.values()) == {2, 3}
+
+def is_flush(suits):
+    return len(set(suits)) == 1
+
+def is_straight(values):
+    return values == list(range(min(values), min(values) + 5)) or values == [2, 3, 4, 5, 14]
+
+def is_three_of_a_kind(values):
+    return 3 in Counter(values).values()
+
+def is_two_pair(values):
+    return list(Counter(values).values()).count(2) == 2
+
+def is_jacks_or_better(values):
+    high_cards = [11, 12, 13, 14]
+    counter = Counter(values)
+    for card, count in counter.items():
+        if count >= 2 and card in high_cards:
+            return True
+    return False
+
+# Function to find the best possible 5-card hand out of a given set of cards
+def find_best_hand(cards):
+    best_hand = max(combinations(cards, 5), key=lambda hand: payouts[evaluate_hand(hand)])
+    return evaluate_hand(best_hand)
+
+# Function to simulate hands and calculate the EV
+def simulate_hands(num_simulations, num_cards=5):
+    ev_sum = 0
+
+    for _ in range(num_simulations):
+        hand = random.sample(deck, num_cards)
+        best_hand_type = find_best_hand(hand)
+        ev_sum += payouts[best_hand_type]
+
+    average_ev = ev_sum / num_simulations
+    return average_ev
+
+# Simulate 1,000,000 hands to estimate the EV
+num_simulations = 1000
+average_ev = simulate_hands(num_simulations)
+print(f"Estimated EV for 10-card deal: {average_ev:.6f}")
